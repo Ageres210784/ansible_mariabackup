@@ -1,0 +1,37 @@
+#!/bin/bash
+BACKDIR={{ mariabackup_backdir }}
+FULLBACKDIR={{ mariabackup_tmp_dir }}/full
+INCBACKDIR={{ mariabackup_tmp_dir }}/inc
+BASEDIR={{ mariadb_base_dir }}
+if test ! -d $FULLBACKDIR; then
+  mkdir -p $FULLBACKDIR
+fi
+if test ! -d $INCBACKDIR; then
+  mkdir -p $INCBACKDIR
+fi
+if [[ ( ! -z "$(ls $FULLBACKDIR)" ) && ( ! -z $FULLBACKDIR ) ]]; then
+  rm -rf $FULLBACKDIR/*
+fi
+for dir in $BACKDIR/*; do
+  if [ -z "$(ls $FULLBACKDIR)" ]; then
+    gunzip $dir/stream.gz -c | mbstream -x -C $FULLBACKDIR
+    mariabackup --prepare --target-dir=$FULLBACKDIR
+  else
+    gunzip $dir/stream.gz -c | mbstream -x -C $INCBACKDIR
+    mariabackup --prepare --target-dir=$FULLBACKDIR --incremental-dir=$INCBACKDIR
+    if [ ! -z $INCBACKDIR ]; then
+      rm -rf $INCBACKDIR/*
+    fi
+  fi
+done
+systemctl stop mysql
+if [ ! -z $BASEDIR ]; then
+  rm -rf $BASEDIR
+fi
+mariabackup --move-back --target-dir=$FULLBACKDIR
+chown -R mysql: $BASEDIR
+systemctl start mysql
+if [[ ( ! -z $INCBACKDIR ) && ( ! -z $FULLBACKDIR ) ]]; then
+  rm -rf $FULLBACKDIR
+  rm -rf $INCBACKDIR
+fi

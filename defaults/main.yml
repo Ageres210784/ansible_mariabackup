@@ -1,0 +1,18 @@
+---
+script_path: "/root"
+mariabackup_user: root
+mariabackup_group: "{{ mariabackup_user }}"
+mariabackup_tmp_dir: "/tmp/mariabackup"
+mariabackup_backdir: "{{ mariabackup_tmp_dir }}/mariadb_backup"
+mariabackup_log_path: "/var/log/mysql"
+mariadb_base_dir: "/var/lib/mysql"
+mariabackup_straem_options: "gzip > {{ mariabackup_backdir }}/$NOWDATE/stream.gz"
+# Time described by STRING, not 'now'. For example:
+# "-5 minutes", "-10 seconds"
+# For more information, see man date
+mariabackup_delete_before: "-7 days"
+
+mariabackup_cron_user: "{{ mariabackup_user }}"
+mariabackup_cron_time:
+  minute: 0
+mariabackup_cron_state: present

@@ -1,0 +1,19 @@
+#!/bin/bash
+NOWDATE=$(date '+%F-%H-%M-%S')
+BACKDIR={{ mariabackup_backdir }}
+if test ! -d $BACKDIR; then
+  mkdir -p $BACKDIR
+fi
+if [ -z "$(ls $BACKDIR)" ]; then
+  BACKUPOPTIONS="--backup --extra-lsndir=$BACKDIR/$NOWDATE --stream=xbstream"
+elif (( `ls $BACKDIR | sort -n | head -1 | tr -d "-"` <= `date -d '{{ mariabackup_delete_before }}' '+%F%H%M%S' | tr -d "-"` )); then
+  if [ ! -z $BACKDIR ]; then
+    rm -rf $BACKDIR/*
+  fi
+  BACKUPOPTIONS="--backup --extra-lsndir=$BACKDIR/$NOWDATE --stream=xbstream"
+else
+  LASTBACK=$BACKDIR/$(ls $BACKDIR | sort -n | tail -1)
+  BACKUPOPTIONS="--backup --extra-lsndir=$BACKDIR/$NOWDATE --incremental-basedir=$LASTBACK --stream=xbstream"
+fi
+mkdir -p $BACKDIR/$NOWDATE
+mariabackup $BACKUPOPTIONS | {{ mariabackup_straem_options }}

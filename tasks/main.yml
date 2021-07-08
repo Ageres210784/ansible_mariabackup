@@ -1,0 +1,32 @@
+---
+- name: Install mariabackup
+  package: name=mariadb-backup state=present
+  become: yes
+
+- name: Copy script for backup mariadb
+  template:
+    src: mariabackup.sh.j2
+    dest: "{{ script_path }}/mariabackup.sh"
+    owner: "{{ mariabackup_user }}"
+    group: "{{ mariabackup_group }}"
+    mode: '0755'
+
+- name: Copy script for restore mariadb
+  template:
+    src: mariabackup_restore.sh.j2
+    dest: "{{ script_path }}/mariabackup_restore.sh"
+    owner: "{{ mariabackup_user }}"
+    group: "{{ mariabackup_group }}"
+    mode: '0755'
+
+- name: Create cron-job for backup
+  cron:
+    name: "mariabackup job"
+    user: "{{ mariabackup_cron_user }}"
+    minute: "{{ mariabackup_cron_time.minute | default('*') }}"
+    hour: "{{ mariabackup_cron_time.hour | default('*') }}"
+    day: "{{ mariabackup_cron_time.day | default('*') }}"
+    month: "{{ mariabackup_cron_time.month | default('*') }}"
+    weekday: "{{ mariabackup_cron_time.weekday  | default('*') }}"
+    job: "{{ script_path }}/mariabackup.sh >> {{ mariabackup_log_path }}/mariabackup.log 2>&1"
+    state: "{{ mariabackup_cron_state }}"
