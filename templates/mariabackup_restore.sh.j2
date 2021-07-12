@@ -1,37 +1,64 @@
 #!/bin/bash
-BACKDIR={{ mariabackup_backdir }}
 FULLBACKDIR={{ mariabackup_tmp_dir }}/full
 INCBACKDIR={{ mariabackup_tmp_dir }}/inc
 BASEDIR={{ mariadb_base_dir }}
+S3BACKDIR="{{ mariabackup_s3_backet }}/{{ mariabackup_s3_prefix }}"
+S3LS=$(aws s3 ls $S3BACKDIR/ | tr -d "PRE " | sort -nr)
+if [ ! -z $1 ]; then
+  DATERESTORE=${1//-}
+else
+  DATERESTORE=`date '+%F%H%M%S' | tr -d "-"`
+fi
 if test ! -d $FULLBACKDIR; then
   mkdir -p $FULLBACKDIR
 fi
 if test ! -d $INCBACKDIR; then
   mkdir -p $INCBACKDIR
 fi
-if [[ ( ! -z "$(ls $FULLBACKDIR)" ) && ( ! -z $FULLBACKDIR ) ]]; then
-  rm -rf $FULLBACKDIR/*
-fi
-for dir in $BACKDIR/*; do
-  if [ -z "$(ls $FULLBACKDIR)" ]; then
-    gunzip $dir/stream.gz -c | mbstream -x -C $FULLBACKDIR
-    mariabackup --prepare --target-dir=$FULLBACKDIR
-  else
-    gunzip $dir/stream.gz -c | mbstream -x -C $INCBACKDIR
-    mariabackup --prepare --target-dir=$FULLBACKDIR --incremental-dir=$INCBACKDIR
-    if [ ! -z $INCBACKDIR ]; then
-      rm -rf $INCBACKDIR/*
-    fi
+for DIRNAME in $S3LS; do
+  DIRDATE=${DIRNAME//-}
+  DIRDATE=${DIRDATE:0:14}
+  if [ "$DIRDATE" -le "$DATERESTORE" ]; then
+    S3BACKUP=$S3BACKDIR/$DIRNAME
+    break
   fi
 done
-systemctl stop mysql
-if [ ! -z $BASEDIR ]; then
-  rm -rf $BASEDIR
-fi
-mariabackup --move-back --target-dir=$FULLBACKDIR
-chown -R mysql: $BASEDIR
-systemctl start mysql
-if [[ ( ! -z $INCBACKDIR ) && ( ! -z $FULLBACKDIR ) ]]; then
-  rm -rf $FULLBACKDIR
-  rm -rf $INCBACKDIR
+if [ ! -z $S3BACKUP ]; then
+  S3LS=$(aws s3 ls $S3BACKUP | cut -d ' ' -f8 | sort -n)
+  for FILENAME in $S3LS; do
+    FILEDATE=${FILENAME//-}
+    FILEDATE=${FILEDATE:0:14}
+    if [ "$FILEDATE" -le "$DATERESTORE" ]; then
+      S3BACKUPFILE=$S3BACKUP$FILENAME
+      if [ "$FILEDATE" = "$DIRDATE" ]; then
+        if [[ ( ! -z "$(ls $FULLBACKDIR)" ) && ( ! -z $FULLBACKDIR ) ]]; then
+          rm -rf $FULLBACKDIR/*
+        fi
+        aws s3 cp s3://$S3BACKUPFILE - | gunzip | mbstream -x -C $FULLBACKDIR
+        mariabackup --prepare --target-dir=$FULLBACKDIR
+      else
+        if [[ ( ! -z "$(ls $INCBACKDIR)" ) && ( ! -z $INCBACKDIR ) ]]; then
+          rm -rf $INCBACKDIR/*
+        fi
+        aws s3 cp s3://$S3BACKUPFILE - | gunzip | mbstream -x -C $INCBACKDIR
+        mariabackup --prepare --target-dir=$FULLBACKDIR --incremental-dir=$INCBACKDIR
+      fi
+    else
+      break
+    fi
+  done
+  if [ ! -z "$(ls $FULLBACKDIR)" ]; then
+    systemctl stop mysql
+    if [ ! -z $BASEDIR ]; then
+      rm -rf $BASEDIR
+    fi
+    mariabackup --move-back --target-dir=$FULLBACKDIR
+    chown -R mysql: $BASEDIR
+    systemctl start mysql
+  fi
+  if [[ ( ! -z $INCBACKDIR ) && ( ! -z $FULLBACKDIR ) ]]; then
+    rm -rf $FULLBACKDIR
+    rm -rf $INCBACKDIR
+  fi
+else echo "There is no suitable archive, specify a different date!"
 fi

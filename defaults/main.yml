@@ -3,10 +3,10 @@ script_path: "/root"
 mariabackup_user: root
 mariabackup_group: "{{ mariabackup_user }}"
 mariabackup_tmp_dir: "/tmp/mariabackup"
-mariabackup_backdir: "{{ mariabackup_tmp_dir }}/mariadb_backup"
+mariabackup_backdir: "/var/lib/mariabackup"
 mariabackup_log_path: "/var/log/mysql"
 mariadb_base_dir: "/var/lib/mysql"
-mariabackup_straem_options: "gzip > {{ mariabackup_backdir }}/$NOWDATE/stream.gz"
+mariabackup_straem_options: "gzip | aws s3 cp - s3://$S3BACKDIR/$NOWDATE.gz"
 # Time described by STRING, not 'now'. For example:
 # "-5 minutes", "-10 seconds"
 # For more information, see man date
@@ -16,3 +16,12 @@ mariabackup_cron_user: "{{ mariabackup_user }}"
 mariabackup_cron_time:
   minute: 0
 mariabackup_cron_state: present
+
+mariabackup_s3_backet: "backet_name"
+mariabackup_s3_prefix: "some_prefix"
+
+mariabackup_s3:
+  region: region
+  output: yaml
+  aws_access_key_id: "aws_access_key_id"
+  aws_secret_access_key: "aws_secret_access_key"
