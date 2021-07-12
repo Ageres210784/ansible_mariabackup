@@ -19,6 +19,37 @@
     group: "{{ mariabackup_group }}"
     mode: '0755'
 
+- name: Check install aws
+  stat:
+    path: /usr/local/bin/aws
+  register: aws_installed
+
+- block:
+  - name: install unzip
+    package: name=unzip state=present
+    become: yes
+
+  - name: Downloading aws
+    unarchive:
+      src: "{{ aws_url }}"
+      dest: "/tmp"
+      owner: "{{ mariabackup_user }}"
+      group: "{{ mariabackup_group }}"
+      remote_src: true
+
+  - name: Install aws
+    command: "/tmp/aws/install"
+    become: yes
+  when: not aws_installed.stat.exists
+
+- name: Create directory .aws
+  file:
+    name: "/root/.aws"
+    owner: "{{ mariabackup_user }}"
+    group: "{{ mariabackup_group }}"
+    mode: 0764
+    state: directory
+
 - name: Copy aws config
   template:
     src: .aws/config.j2

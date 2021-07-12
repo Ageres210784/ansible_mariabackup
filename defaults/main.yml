@@ -17,6 +17,8 @@ mariabackup_cron_time:
   minute: 0
 mariabackup_cron_state: present
 
+aws_url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+
 mariabackup_s3_backet: "backet_name"
 mariabackup_s3_prefix: "some_prefix"
 
