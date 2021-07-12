@@ -10,7 +10,7 @@ mariabackup_straem_options: "gzip | aws s3 cp - s3://$S3BACKDIR/$NOWDATE.gz"
 # Time described by STRING, not 'now'. For example:
 # "-5 minutes", "-10 seconds"
 # For more information, see man date
-mariabackup_delete_before: "-7 days"
+mariabackup_rotation: "-7 days"
 
 mariabackup_cron_user: "{{ mariabackup_user }}"
 mariabackup_cron_time:

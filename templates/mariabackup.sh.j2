@@ -8,7 +8,7 @@ fi
 FULLBACK=$(ls $BACKDIR | sort -n | head -1)
 if [ -z "$(ls $BACKDIR)" ]; then
   BACKUPOPTIONS="--backup --extra-lsndir=$BACKDIR/$NOWDATE --stream=xbstream"
-elif (( `echo $FULLBACK | tr -d "-"` <= `date -d '{{ mariabackup_delete_before }}' '+%F%H%M%S' | tr -d "-"` )); then
+elif (( `echo $FULLBACK | tr -d "-"` <= `date -d '{{ mariabackup_rotation }}' '+%F%H%M%S' | tr -d "-"` )); then
   if [ ! -z $BACKDIR ]; then
     rm -rf $BACKDIR/*
   fi

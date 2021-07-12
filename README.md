@@ -1,38 +1,72 @@
-Role Name
+ageres210784.ansible_mariabackup
 =========
 
-A brief description of the role goes here.
+Role for mariabackup installation and configuration.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Ansible Galaxy
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+To run this role, you need to provide your Amazon s3 account information. For example:
+
+```yaml
+mariabackup_s3:
+  region: region
+  output: yaml
+  aws_access_key_id: "aws_access_key_id"
+  aws_secret_access_key: "aws_secret_access_key"
+mariabackup_s3_backet: "backet_name"
+mariabackup_s3_prefix: "some_prefix"
+```
+
+Restore
+-------
+
+To restore the database to the desired date, use the mariabackup_restore.sh script with the date in the format YYYY-MM-DD-hh-mm-ss or without "-". If you do not specify a date, the current date will be used. For example:
+
+```bash
+./mariabackup_restore.sh 2021-07-12-13-50-00
+```
+
+```bash
+./mariabackup_restore.sh 20210712135000
+```
+
+```bash
+./mariabackup_restore.sh
+```
+
+You can see all vars in `default/main.yml` vars file.
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+None
+
+Tested with Ansible
+-------------------
+
+    2.9
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: servers
+  roles:
+    - role: ageres210784.ansible_mariabackup
+```
 
 License
 -------
 
-BSD
+Apache 2.0
 
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Evseev Sergey
